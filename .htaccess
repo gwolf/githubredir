@@ -1,0 +1,6 @@
+Options +ExecCGI
+<IfModule mod_rewrite.c>
+  RewriteEngine on
+  RewriteRule ^github/([^/\.]+)/([^/\.]+)/?$ githubredir.cgi?author=$1&project=$2 [L]
+  RewriteRule ^github/([^/\.]+)/([^/\.]+)/([^/]+).tar.gz$ githubredir.cgi?author=$1&project=$2&tag=$3 [L]
+</IfModule>

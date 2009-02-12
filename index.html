@@ -1,0 +1,92 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<title>Githubredir - Delivering .tar.gz from Github tags</title> 
+<link rel="stylesheet" href="/style.css" type="text/css" />
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+</head>
+<body>
+<h1>Githubredir</h1>
+
+<p>Delivering .tar.gz from Github tags</p>
+
+<h3>What is this?</h3>
+
+<p>There is quite a bit of software whose upstream authors decide that,
+as they are already using Git for development, the main distribution
+channel should be <a href="http://www.github.com/">GitHub</a> - This
+allows, yes, for quite a bit of flexibility, which many authors have
+taken advantage of.</p>
+
+<p>Specifically, what does this redirector make? Given that GitHub
+allows for downloading as a .zip or as a .tar.gz any given commit, it
+suddenly becomes enough to <tt>git tag</tt> with a version number, and
+GitHub magically makes that version available for download. Which is
+sweet!</p>
+
+<p>Sometimes it is a bit problematic, though, to follow their
+format. Github gives a listing of the tags for each particular
+prooject, and each of those tags has a download page, with both
+archiving formats.</p>
+
+<p>I won't go into too much detail here - Thing is, going over several
+pages becomes painful for Debian's <a
+href="http://dehs.alioth.debian.org/uscan.html">uscan</a>, widely used
+for various of our QA processes. There are other implemented
+redirectors, such as the one used for SourceForge.</p>
+
+<h3>Who should use this</h3>
+
+<p>This redirector is mainly meant to be consumed by uscan. Anybody
+who finds this system useful can freely use it, although you might be
+better served by the rich, official <a
+href="http://www.github.com">GitHub.com</a> interface. If source code
+is your thing, <a href="/githubredir.rb">grab the source here</a>.</p>
+
+<h3>How to use this?</h3>
+
+<p>Get the GitHub <em>project name</em> and the <em>author</em> you
+want to follow. And just create a simple URL:</p>
+
+<blockquote><tt>http://githubredir.debian.net/github/<em>author</em>/<em>project</em></tt></blockquote>
+
+<p>That means, if you want to track, say, <tt>mislav</tt>'s excellent
+<tt>will_paginate</tt> Ruby library:</p>
+
+<blockquote><tt><a
+href="http://githubredir.debian.net/github/mislav/will_paginate">http://githubredir.debian.net/github/mislav/will_paginate</a></tt></blockquote>
+
+<form action="http://githubredir.debian.net/githubredir.cgi">
+<p>Or you can use this oh-so-very-handy form, to play with the tool:<br/>
+<b>Author:</b> <input name="author" type="text" size="20" /><br/>
+<b>Project name:</b> <input name="project" type="text" size="20" /><br/>
+<input type="submit" value="Check for tags" /></p>
+</form>
+
+<p>But, of course, you want to include it in your
+<tt>debian/watch</tt>, right? Ok, so, again for Mislav's
+will_paginate: </p>
+<pre>version=3
+http://githubredir.debian.net/github/mislav/will_paginate (.*).tar.gz</pre>
+
+<p>Please note tags can follow just about any format - I am using
+<tt>(.*)</tt> as a simple pattern. You might need some more stuff if
+the project's author is more... Baroque? :-}</p>
+
+<h3>Bugs, to-do, etc.</h3>
+<ul>
+  <li>Sometimes, when requesting a specific tar.gz, GitHub just
+  returns a 404	error. I believe this to be GitHub's fault, not mine,
+  as it works upon a retry... But anyway.</li>
+  <li>This script allows for tracking a single user's repository for a
+  given project. This is usually what you want - However, it would be
+  good to also link to the project's forks, if available. Now, this
+  is to be machine-consumed, so... I'm not sure this would be
+  useful.</li> 
+</ul>
+
+<p>For any further questions regarding this script, please contact <a
+href="mailto:gwolf@debian.org">Gunnar Wolf</a>.</p>
+
+</body> </html>
