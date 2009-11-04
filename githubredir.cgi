@@ -50,10 +50,10 @@ class GitHubRedir
         doc = Hpricot(open(index_uri))
         releases = []
 
-        rels = doc.search('div[@id="other_archives"]').search('li')
+        rels = doc / '#other_archives' / 'li'
         raise RuntimeError, 'No releases found' if rels.empty?
 
-        doc.search('li').each do |li|
+        rels.each do |li|
           ver = (li/'a').text
           releases << ver
         end
