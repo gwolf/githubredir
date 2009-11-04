@@ -27,7 +27,7 @@
 #   <IfModule mod_rewrite.c>
 #     RewriteEngine on
 #     RewriteRule ^github/([^/\.]+)/([^/\.]+)/?$ githubredir.cgi?author=$1&project=$2 [L]
-#     RewriteRule ^github/([^/\.]+)/([^/\.]+)/([^/]+).tar.gz$ githubredir.cgi?author=$1&project=$2&tag=$3 [L]
+#     RewriteRule ^github/([^/\.]+)/([^/\.]+)/(.+).tar.gz$ githubredir.cgi?author=$1&project=$2&tag=$3 [L]
 #   </IfModule>
 #
 # - Get Hpricot installed. If your does not provide it, just put it in any 
@@ -48,14 +48,19 @@ class GitHubRedir
       begin
         # Get the latest available tag (version)
         doc = Hpricot(open(index_uri))
-        releases = []
+        releases = {}
 
         rels = doc / '#other_archives' / 'li'
         raise RuntimeError, 'No releases found' if rels.empty?
 
         rels.each do |li|
-          ver = (li/'a').text
-          releases << ver
+          a = (li/'a')[0]
+          # In order for the links to end in .tar.gz (for uscan to be happy,
+          # of course), we link back to ourselves with a tag - And the tag 
+          # will just be sent over to github.
+          label = a.attributes['href'].gsub(/^.*archives\//, '')
+          link = '/github/%s/%s/%s.tar.gz' % [@author, @project, label]
+          releases[label] = link
         end
         @result = html_for_tags(releases)
       rescue RuntimeError, OpenURI::HTTPError => msg
@@ -94,9 +99,9 @@ class GitHubRedir
   def html_for_tags(tags)
     raise RuntimeError, 'No tags available' if tags.nil?
     res = ["<h1>Available tags</h1>", proj_info]
-    res << '<ul>' << tags.reject {|t| t.nil? or t.empty?}.sort.map do |tag|
-      '<li><a href="/github/%s/%s/%s.tar.gz">Download %s</a></li>' %
-        [@author, @project, tag, tag]
+    res << '<ul>' << tags.reject {|k,v| k.nil? or k.empty?}.sort.map do |tag, link|
+      '<li><a href="%s">Download %s</a></li>' %
+        [link, tag]
     end << '</ul>'
     res << redir_description
 
