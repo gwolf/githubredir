@@ -1,7 +1,12 @@
 #!/usr/bin/ruby -I .
 # -*- coding: utf-8 -*-
 #
-# Copyright © 2008 Gunnar Wolf <gwolf@debian.org>
+# Copyright © 2008-2010 Gunnar Wolf <gwolf@debian.org>
+#
+# Includes patches by:
+# 
+# Joshua Timberman (March, 2010): Fixed missing tags by querying a slightly 
+# different pattern 
 ############################################################
 #             DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
 #                     Version 2, December 2004
@@ -40,26 +45,33 @@ require 'hpricot'
 
 class GitHubRedir
   def initialize(author, project, tag=nil)
-    @project = project
-    @author = author
+    @project = project[0]
+    @author = author[0]
+    tag = tag[0] if tag.is_a?(Array)
     @status = :ok
     @result = nil
 
     if tag.nil? or tag.empty?
+      # No tag requested: Generate the index
       begin
         # Get the latest available tag (version)
         doc = Hpricot(open(index_uri))
+
+        # Create a link to the master branch
+        if master = (doc / '#archive' / 'li' / 'a[@href*="tar"]')[0]
+          @master = '/github/%s/%s/0~%s.tar.gz' % [@author, @project, 'master']
+        end
+
         releases = {}
 
-        rels = doc / '#other_archives' / 'li'
+        rels = doc / '#downloads' / 'td' / 'a'
         raise RuntimeError, 'No releases found' if rels.empty?
 
-        rels.each do |li|
-          a = (li/'a')[0]
+        rels.each do |a|
           # In order for the links to end in .tar.gz (for uscan to be happy,
           # of course), we link back to ourselves with a tag - And the tag 
           # will just be sent over to github.
-          label = a.attributes['href'].gsub(/^.*archives\//, '')
+          label = a.attributes['href'].gsub(/^.*tarball\//, '') if a.inner_html =~ /tgz/
           link = '/github/%s/%s/%s.tar.gz' % [@author, @project, label]
           releases[label] = link
         end
@@ -70,6 +82,9 @@ class GitHubRedir
       end
     else
       @status = :redirect
+      # Substitute '0~master' for 'master' - We added it (see @master 
+      # initialization above) to prevent us from robbing uscan's attention
+      tag = 'master' if tag =~ /0~master/
       @result = 'http://github.com/%s/%s/tarball/%s' % [@author, @project, tag]
     end
   end
@@ -94,7 +109,7 @@ class GitHubRedir
 
   private
   def index_uri(branch='master')
-    'http://github.com/%s/%s/archives/%s' % [@author, @project, branch]
+    'http://github.com/%s/%s/downloads' % [@author, @project]
   end
 
   def html_for_tags(tags)
@@ -118,7 +133,10 @@ class GitHubRedir
     auth_link = '<a href="http://github.com/%s">%s</a>' % [@author, @author]
     proj_link = '<a href="http://github.com/%s/%s">%s</a>' % 
       [@author, @project, @project]
-    "<p>Author: #{auth_link}<br/>Project: #{proj_link}</p>" 
+    master_link = '<a href="%s">%s</a>' % [@master, 'Download tar.gz (snapshot)']
+    "<p>Author: #{auth_link}<br/>Project: #{proj_link}<br/>" + 
+      "Master branch: #{master_link}.<br/><em>Master branch is reported as under " +
+      "version 0 in order not to disturb proper tags' ordering</em></p>" 
   end
 
   def redir_description
