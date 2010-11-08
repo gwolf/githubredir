@@ -84,7 +84,7 @@ class GitHubRedir
       # Substitute '0~master' for 'master' - We added it (see @master 
       # initialization above) to prevent us from robbing uscan's attention
       tag = 'master' if tag =~ /0~master/
-      @result = 'http://github.com/%s/%s/tarball/%s' % [@author, @project, tag]
+      @result = 'https://github.com/%s/%s/tarball/%s' % [@author, @project, tag]
     end
   end
 
@@ -108,7 +108,7 @@ class GitHubRedir
 
   private
   def index_uri(branch='master')
-    'http://github.com/%s/%s/downloads' % [@author, @project]
+    'https://github.com/%s/%s/downloads' % [@author, @project]
   end
 
   def html_for_tags(tags)
@@ -129,8 +129,8 @@ class GitHubRedir
   end
 
   def proj_info
-    auth_link = '<a href="http://github.com/%s">%s</a>' % [@author, @author]
-    proj_link = '<a href="http://github.com/%s/%s">%s</a>' % 
+    auth_link = '<a href="https://github.com/%s">%s</a>' % [@author, @author]
+    proj_link = '<a href="https://github.com/%s/%s">%s</a>' % 
       [@author, @project, @project]
     master_link = '<a href="%s">%s</a>' % [@master, 'Download tar.gz (snapshot)']
     "<p>Author: #{auth_link}<br/>Project: #{proj_link}<br/>" + 
@@ -143,7 +143,7 @@ class GitHubRedir
        version downloading for automated QA in the Debian system.<br/>
        Anybody who finds this system useful can freely use it, although you 
        might be better served by the rich, official <a 
-       href="http://github.com">GitHub.com</a> interface.<br/>
+       href="https://github.com">GitHub.com</a> interface.<br/>
        For any questions regarding this script, please contact 
        <a href="mailto:gwolf@debian.org">Gunnar Wolf</a>.</p>)
   end
