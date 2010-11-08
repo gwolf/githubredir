@@ -1,5 +1,4 @@
 #!/usr/bin/ruby -I .
-# -*- coding: utf-8 -*-
 #
 # Copyright © 2008-2010 Gunnar Wolf <gwolf@debian.org>
 #
@@ -140,7 +139,7 @@ class GitHubRedir
   end
 
   def redir_description
-    %q(<hr /><p>This redirector is a tool written to ease the automated new 
+    %q(<hr /><p>This redirctor is a tool written to ease the automated new 
        version downloading for automated QA in the Debian system.<br/>
        Anybody who finds this system useful can freely use it, although you 
        might be better served by the rich, official <a 
