@@ -1,3 +1,6 @@
+# Had to set a GEM_HOME for the hosting provider - Change it locally
+# if you need it
+SetEnv GEM_HOME ~/gems
 Options +ExecCGI
 <IfModule mod_rewrite.c>
   RewriteEngine on

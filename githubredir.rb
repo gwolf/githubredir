@@ -38,6 +38,7 @@
 # - Get Hpricot installed. If your does not provide it, just put it in any 
 #   directory under your control, and put it towards the end of Ruby's include
 #   path. This can be done by specifying this directory with the -I switch to Ruby.
+require 'rubygems'
 require 'open-uri'
 require 'cgi'
 require 'hpricot'
