@@ -1,11 +1,14 @@
 #!/usr/bin/ruby -I .
+# -*- coding: utf-8 -*-
 #
 # Copyright © 2008-2010 Gunnar Wolf <gwolf@debian.org>
 #
 # Includes patches by:
-# 
-# Joshua Timberman (March, 2010): Fixed missing tags by querying a slightly 
-# different pattern 
+#
+# Joshua Timberman (March, 2010): Fixed missing tags by querying a slightly
+# different pattern
+# Stephen Walker (November, 2010): Github changed layout and killed our 
+# scraping; Stephen fixed it
 ############################################################
 #             DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
 #                     Version 2, December 2004
@@ -19,13 +22,13 @@
 #             DO WHAT THE FUCK YOU WANT TO PUBLIC LICENSE
 #    TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
 #
-#   0. You just DO WHAT THE FUCK YOU WANT TO. 
+#   0. You just DO WHAT THE FUCK YOU WANT TO.
 #
 # http://sam.zoy.org/wtfpl/
 ############################################################
 # What is needed to get this script going?
-# 
-# - Put the following content as a .htaccess (for Apache installations - for 
+#
+# - Put the following content as a .htaccess (for Apache installations - for
 #   other webservers, translate as you see fit):
 #
 #   Options +ExecCGI
@@ -35,7 +38,7 @@
 #     RewriteRule ^github/([^/\.]+)/([^/\.]+)/(.+).tar.gz$ githubredir.cgi?author=$1&project=$2&tag=$3 [L]
 #   </IfModule>
 #
-# - Get Hpricot installed. If your does not provide it, just put it in any 
+# - Get Hpricot installed. If your does not provide it, just put it in any
 #   directory under your control, and put it towards the end of Ruby's include
 #   path. This can be done by specifying this directory with the -I switch to Ruby.
 require 'rubygems'
@@ -54,24 +57,27 @@ class GitHubRedir
     if tag.nil? or tag.empty?
       # No tag requested: Generate the index
       begin
-        # Get the latest available tag (version)
-        doc = Hpricot(open(index_uri))
+        # Fetch and parse the archives page
+        doc_archives = Hpricot(open(index_uri_archives))
+
+        # Fetch and parse the downloads page
+        doc_downloads = Hpricot(open(index_uri_downloads))
 
         # Create a link to the master branch
-        if master = (doc / '#archive' / 'li' / 'a[@href*="tar"]')[0]
+        if master = (doc_archives / '.source-downloads' / 'a[@href*="tarball"]')[0]
           @master = '/github/%s/%s/0~%s.tar.gz' % [@author, @project, 'master']
         end
 
         releases = {}
 
-        rels = doc / '#downloads' / 'td' / 'a'
+        rels = doc_downloads / '.alt-download-links' / 'a[@href*="tarball"]'
         raise RuntimeError, 'No releases found' if rels.empty?
 
         rels.each do |a|
           # In order for the links to end in .tar.gz (for uscan to be happy,
-          # of course), we link back to ourselves with a tag - And the tag 
+          # of course), we link back to ourselves with a tag - And the tag
           # will just be sent over to github.
-          label = a.attributes['href'].gsub(/^.*tarball\//, '') if a.inner_html =~ /tgz/
+          label = a.attributes['href'].gsub(/^.*tarball\//, '')
           link = '/github/%s/%s/%s.tar.gz' % [@author, @project, label]
           releases[label] = link
         end
@@ -82,7 +88,7 @@ class GitHubRedir
       end
     else
       @status = :redirect
-      # Substitute '0~master' for 'master' - We added it (see @master 
+      # Substitute '0~master' for 'master' - We added it (see @master
       # initialization above) to prevent us from robbing uscan's attention
       tag = 'master' if tag =~ /0~master/
       @result = 'https://github.com/%s/%s/tarball/%s' % [@author, @project, tag]
@@ -95,20 +101,28 @@ class GitHubRedir
     return {'status' => 'SERVER_ERROR'}
   end
 
-  def result 
+  def result
     '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
         "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<title>Githubredir - Delivering .tar.gz from Github tags</title> 
+<title>Githubredir - Delivering .tar.gz from Github tags</title>
 <link rel="stylesheet" href="/style.css" type="text/css" />
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 </head>
-<body>' << @result << '</body></html>'
+<body>
+' << @result << '
+</body>
+</html>
+'
   end
 
   private
-  def index_uri(branch='master')
+  def index_uri_archives(branch='master')
+    'https://github.com/%s/%s/archives/%s' % [@author, @project, 'master']
+  end
+
+  def index_uri_downloads(branch='master')
     'https://github.com/%s/%s/downloads' % [@author, @project]
   end
 
@@ -125,28 +139,35 @@ class GitHubRedir
   end
 
   def error_msg_for(what)
-    "<h1>Error opening project URL</h1>" + proj_info +
-      "<p>#{what}</p>" + redir_description
+    "<h1>Error opening project URL</h1>\n" + proj_info +
+      "\n<p>#{what}</p>\n" + redir_description
   end
 
   def proj_info
     auth_link = '<a href="https://github.com/%s">%s</a>' % [@author, @author]
-    proj_link = '<a href="https://github.com/%s/%s">%s</a>' % 
+    proj_link = '<a href="https://github.com/%s/%s">%s</a>' %
       [@author, @project, @project]
     master_link = '<a href="%s">%s</a>' % [@master, 'Download tar.gz (snapshot)']
-    "<p>Author: #{auth_link}<br/>Project: #{proj_link}<br/>" + 
-      "Master branch: #{master_link}.<br/><em>Master branch is reported as under " +
-      "version 0 in order not to disturb proper tags' ordering</em></p>" 
+    "<p>\n" +
+      "Author: #{auth_link}<br/>\n" +
+      "Project: #{proj_link}<br/>\n" +
+      "Master branch: #{master_link}.<br/>\n" +
+      "<em>Master branch is reported as under " +
+      "version 0 in order not to disturb proper tags' ordering</em>\n" +
+      "</p>"
   end
 
   def redir_description
-    %q(<hr /><p>This redirctor is a tool written to ease the automated new 
-       version downloading for automated QA in the Debian system.<br/>
-       Anybody who finds this system useful can freely use it, although you 
-       might be better served by the rich, official <a 
-       href="https://github.com">GitHub.com</a> interface.<br/>
-       For any questions regarding this script, please contact 
-       <a href="mailto:gwolf@debian.org">Gunnar Wolf</a>.</p>)
+    %q(<hr />
+<p>
+This redirctor is a tool written to ease the automated new
+version downloading for automated QA in the Debian system.<br/>
+Anybody who finds this system useful can freely use it, although you
+might be better served by the rich, official <a
+href="https://github.com/">GitHub.com</a> interface.<br/>
+For any questions regarding this script, please contact
+<a href="mailto:gwolf@debian.org">Gunnar Wolf</a>.
+</p>)
   end
 end
 
