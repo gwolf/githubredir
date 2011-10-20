@@ -63,14 +63,17 @@ class GitHubRedir
         # Fetch and parse the downloads page
         doc_downloads = Hpricot(open(index_uri_downloads))
 
+	# Fetch and parse the tags page
+	doc_tags = Hpricot(open(index_uri_tags))
+
         # Create a link to the master branch
-        if master = (doc_archives / '.source-downloads' / 'a[@href*="tarball"]')[0]
+        if master = (doc_downloads / 'a[@href*="tarball"]')[0]
           @master = '/github/%s/%s/0~%s.tar.gz' % [@author, @project, 'master']
         end
 
         releases = {}
 
-        rels = doc_downloads / '.alt-download-links' / 'a[@href*="tarball"]'
+        rels = doc_tags / '.download-list' / 'a[@href*="tarball"]'
         raise RuntimeError, 'No releases found' if rels.empty?
 
         rels.each do |a|
@@ -124,6 +127,10 @@ class GitHubRedir
 
   def index_uri_downloads(branch='master')
     'https://github.com/%s/%s/downloads' % [@author, @project]
+  end
+
+  def index_uri_tags(branch='master')
+    'https://github.com/%s/%s/tags' % [@author, @project]
   end
 
   def html_for_tags(tags)
