@@ -73,15 +73,15 @@ class GitHubRedir
 
         releases = {}
 
-        rels = doc_tags / '.download-list .alt-download-links a'
+        rels = doc_tags.search('.download-list .alt-download-links a').select {|a| a.attributes['href'] =~ /tar.gz$/}
         raise RuntimeError, 'No releases found' if rels.empty?
 
         rels.each do |a|
           # In order for the links to end in .tar.gz (for uscan to be happy,
           # of course), we link back to ourselves with a tag - And the tag
           # will just be sent over to github.
-          label = a.attributes['href'].gsub(/^.*tarball\//, '')
-          link = '/github/%s/%s/%s.tar.gz' % [@author, @project, label]
+          label = a.attributes['href'].gsub(/^.*\//, '')
+          link = 'http://github.com/%s/%s/archive/%s' % [@author, @project, label]
           releases[label] = link
         end
         @result = html_for_tags(releases)
