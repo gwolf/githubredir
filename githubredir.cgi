@@ -73,7 +73,7 @@ class GitHubRedir
 
         releases = {}
 
-        rels = doc_tags / '.download-list' / 'a[@href*="tarball"]'
+        rels = doc_tags / '.download-list .alt-download-links a'
         raise RuntimeError, 'No releases found' if rels.empty?
 
         rels.each do |a|
