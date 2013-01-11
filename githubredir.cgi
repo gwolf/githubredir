@@ -55,7 +55,9 @@ class GitHubRedir
       begin
 	# Fetch the tags, hash them by tagname
         doc_tags = JSON.parse(open(uri_for_tags).read)
-        releases = Hash[* doc_tags.map{ |tag| [tag['name'], tag['tarball_url']]}.flatten]
+        releases = Hash[* doc_tags.map{ |tag|
+                          [ tag['name'], uri_for_tarball(tag['name']) ]
+                        }.flatten]
 
         @result = html_for_tags(releases)
       rescue RuntimeError, OpenURI::HTTPError => msg
@@ -66,7 +68,7 @@ class GitHubRedir
       @status = :redirect
       # Substitute '0~master' for 'master' - We added it (see link
       # generation below) to prevent us from robbing uscan's attention
-      tag = 'master' if tag =~ /0~master/
+      tag.gsub! /^0~master/, 'master'
       @result = uri_for_download(@author, @project, tag)
     end
   end
@@ -102,12 +104,12 @@ class GitHubRedir
     'https://api.github.com/repos/%s/%s/tags' % [@author, @project]
   end
 
-  def uri_for_master
-    '/github/%s/%s/0~master.tar.gz' % [@author, @project]
+  def uri_for_tarball(tag)
+    '/github/%s/%s/%s.tar.gz' % [@author, @project, tag]
   end
 
   def uri_for_download(author, project, tag)
-    'https://github.com/%s/%s/archive/%s.tar.gz' % [author, project, tag]
+    'https://github.com/%s/%s/archive/%s' % [author, project, tag]
   end
 
   def uri_for_author
@@ -137,7 +139,7 @@ class GitHubRedir
   def proj_info
     auth_link = html_link(uri_for_author, @author)
     proj_link = html_link(uri_for_project, @project)
-    master_link = html_link(uri_for_master, 'Download tar.gz (snapshot)')
+    master_link = html_link(uri_for_tarball('0~master'), 'Download tar.gz (snapshot)')
     "<p>\n" +
       "Author: #{auth_link}<br/>\n" +
       "Project: #{proj_link}<br/>\n" +
