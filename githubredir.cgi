@@ -109,7 +109,7 @@ class GitHubRedir
   end
 
   def uri_for_download(author, project, tag)
-    'https://github.com/%s/%s/archive/%s' % [author, project, tag]
+    'https://github.com/%s/%s/archive/%s.tar.gz' % [author, project, tag]
   end
 
   def uri_for_author
