@@ -37,14 +37,10 @@
 #     RewriteRule ^github/([^/\.]+)/([^/\.]+)/?$ githubredir.cgi?author=$1&project=$2 [L]
 #     RewriteRule ^github/([^/\.]+)/([^/\.]+)/(.+).tar.gz$ githubredir.cgi?author=$1&project=$2&tag=$3 [L]
 #   </IfModule>
-#
-# - Get Hpricot installed. If your does not provide it, just put it in any
-#   directory under your control, and put it towards the end of Ruby's include
-#   path. This can be done by specifying this directory with the -I switch to Ruby.
 require 'rubygems'
 require 'open-uri'
 require 'cgi'
-require 'hpricot'
+require 'json'
 
 class GitHubRedir
   def initialize(author, project, tag=nil)
@@ -57,33 +53,10 @@ class GitHubRedir
     if tag.nil? or tag.empty?
       # No tag requested: Generate the index
       begin
-        # Fetch and parse the archives page
-        doc_archives = Hpricot(open(index_uri_archives))
+	# Fetch the tags, hash them by tagname
+        doc_tags = JSON.parse(open(uri_for_tags).read)
+        releases = Hash[* doc_tags.map{ |tag| [tag['name'], tag['tarball_url']]}.flatten]
 
-        # Fetch and parse the downloads page
-        doc_downloads = Hpricot(open(index_uri_downloads))
-
-	# Fetch and parse the tags page
-	doc_tags = Hpricot(open(index_uri_tags))
-
-        # Create a link to the master branch
-        if master = (doc_downloads / 'a[@href*="tarball"]')[0]
-          @master = '/github/%s/%s/0~%s.tar.gz' % [@author, @project, 'master']
-        end
-
-        releases = {}
-
-        rels = doc_tags.search('.download-list .alt-download-links a').select {|a| a.attributes['href'] =~ /tar.gz$/}
-        raise RuntimeError, 'No releases found' if rels.empty?
-
-        rels.each do |a|
-          # In order for the links to end in .tar.gz (for uscan to be happy,
-          # of course), we link back to ourselves with a tag - And the tag
-          # will just be sent over to github.
-          label = a.attributes['href'].gsub(/^.*\//, '')
-          link = 'http://github.com/%s/%s/archive/%s' % [@author, @project, label]
-          releases[label] = link
-        end
         @result = html_for_tags(releases)
       rescue RuntimeError, OpenURI::HTTPError => msg
         @result = error_msg_for(msg)
@@ -91,10 +64,10 @@ class GitHubRedir
       end
     else
       @status = :redirect
-      # Substitute '0~master' for 'master' - We added it (see @master
-      # initialization above) to prevent us from robbing uscan's attention
+      # Substitute '0~master' for 'master' - We added it (see link
+      # generation below) to prevent us from robbing uscan's attention
       tag = 'master' if tag =~ /0~master/
-      @result = 'https://github.com/%s/%s/tarball/%s' % [@author, @project, tag]
+      @result = uri_for_download(@author, @project, tag)
     end
   end
 
@@ -121,24 +94,35 @@ class GitHubRedir
   end
 
   private
-  def index_uri_archives(branch='master')
-    'https://github.com/%s/%s/archives/%s' % [@author, @project, 'master']
+  def html_link(uri, text)
+    '<a href="%s">%s</a>' % [uri, text]
   end
 
-  def index_uri_downloads(branch='master')
-    'https://github.com/%s/%s/downloads' % [@author, @project]
+  def uri_for_tags
+    'https://api.github.com/repos/%s/%s/tags' % [@author, @project]
   end
 
-  def index_uri_tags(branch='master')
-    'https://github.com/%s/%s/tags' % [@author, @project]
+  def uri_for_master
+    '/github/%s/%s/0~master.tar.gz' % [@author, @project]
+  end
+
+  def uri_for_download(author, project, tag)
+    'https://github.com/%s/%s/archive/%s.tar.gz' % [author, project, tag]
+  end
+
+  def uri_for_author
+    'https://github.com/%s' % @author
+  end
+
+  def uri_for_project
+    'https://github.com/%s/%s' % [@author, @project]
   end
 
   def html_for_tags(tags)
     raise RuntimeError, 'No tags available' if tags.nil?
     res = ["<h1>Available tags</h1>", proj_info]
     res << '<ul>' << tags.reject {|k,v| k.nil? or k.empty?}.sort.map do |tag, link|
-      '<li><a href="%s">Download %s</a></li>' %
-        [link, tag]
+      '<li>%s</li>' % html_link(link, "Download #{tag}")
     end << '</ul>'
     res << redir_description
 
@@ -151,10 +135,9 @@ class GitHubRedir
   end
 
   def proj_info
-    auth_link = '<a href="https://github.com/%s">%s</a>' % [@author, @author]
-    proj_link = '<a href="https://github.com/%s/%s">%s</a>' %
-      [@author, @project, @project]
-    master_link = '<a href="%s">%s</a>' % [@master, 'Download tar.gz (snapshot)']
+    auth_link = html_link(uri_for_author, @author)
+    proj_link = html_link(uri_for_project, @project)
+    master_link = html_link(uri_for_master, 'Download tar.gz (snapshot)')
     "<p>\n" +
       "Author: #{auth_link}<br/>\n" +
       "Project: #{proj_link}<br/>\n" +
