@@ -54,7 +54,7 @@ class GitHubRedir
       # No tag requested: Generate the index
       begin
 	# Fetch the tags, hash them by tagname
-        doc_tags = JSON.parse(open(uri_for_tags).read)
+        doc_tags = JSON.parse(open(uri_for_tags, 'User-Agent' => 'Githubredir').read)
         releases = Hash[* doc_tags.map{ |tag|
                           [ tag['name'], uri_for_tarball(tag['name']) ]
                         }.flatten]
