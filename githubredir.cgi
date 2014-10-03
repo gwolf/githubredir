@@ -88,14 +88,28 @@ class GitHubRedir
 <link rel="stylesheet" href="/style.css" type="text/css" />
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 </head>
-<body>
-' << @result << '
+<body>' << obsoletion_msg << @result << '
 </body>
 </html>
 '
   end
 
   private
+  def obsoletion_msg
+    '<h1>Github is obsolete and will go away!</h1>
+<p>Please note that <b>githubredir is nowadays considered to be
+obsolete</b>. Github now provides a clean way to query for the
+tags: A human-facing interface:</p>' <<
+      '<pre>https://github.com/%s/%s/tags</pre>' % [@author, @project] <<
+      '<p>And a more machine-oriented interface:</p>' <<
+      '<pre>https://api.github.com/repos/%s/%s/tags</pre>' % [@author, @project] <<
+      '<p>A suitable <tt>debian/watch</tt> for this project would be:</p>' <<
+      '<pre>version=3
+opts="filenamemangle=s/(?:.*)?v?(\d[\d\.]*)\.tar\.gz/%s-$1.tar.gz/"
+  https://github.com/%s/%s/tags (?:.*/)?v?(\d[\d\.]*)\.tar\.gz
+</pre>' % [@project, @author, @project]
+  end
+
   def html_link(uri, text)
     '<a href="%s">%s</a>' % [uri, text]
   end
