@@ -96,7 +96,7 @@ class GitHubRedir
 
   private
   def obsoletion_msg
-    '<h1>Github is obsolete and will go away!</h1>
+    '<h1>Githubredir is obsolete and will go away!</h1>
 <p>Please note that <b>githubredir is nowadays considered to be
 obsolete</b>. Github now provides a clean way to query for the
 tags: A human-facing interface:</p>' <<
@@ -107,7 +107,9 @@ tags: A human-facing interface:</p>' <<
       '<pre>version=3
 opts="filenamemangle=s/(?:.*)?v?(\d[\d\.]*)\.tar\.gz/%s-$1.tar.gz/"
   https://github.com/%s/%s/tags (?:.*/)?v?(\d[\d\.]*)\.tar\.gz
-</pre>' % [@project, @author, @project]
+</pre>' % [@project, @author, @project] <<
+      '<p><b>In a not too distant future, this service 
+will be no longer provided.</b></p>'
   end
 
   def html_link(uri, text)
